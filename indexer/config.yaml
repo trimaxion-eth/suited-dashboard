@@ -1,0 +1,75 @@
+# yaml-language-server: $schema=./node_modules/envio/evm.schema.json
+#
+# Suited protocol revenue indexer — Robinhood Chain 4663.
+#
+# Two independent USDG revenue streams, reconstructed as queryable entities and
+# UTC-day aggregates (see schema.graphql / src/handlers/index.ts):
+#   1. poker rake        — Vault.CheckpointApplied
+#   2. pons creator fees — PonsV2FeeEscrow -> CreatorFeeClaimer -> CreatorFeeSplitter
+#
+# HyperSync is the data source; do NOT add an `rpc:` block. start_block: 0 is
+# safe — HyperSync fast-forwards to the first matching log.
+name: suited-indexer
+description: Suited protocol revenue — daily poker rake and pons creator fees on Robinhood Chain 4663
+address_format: lowercase
+contracts:
+  - name: Vault
+    abi_file_path: ./abis/Vault.json
+    events:
+      - event: CheckpointApplied
+        field_selection:
+          transaction_fields:
+            - hash
+  - name: PonsV2FeeEscrow
+    abi_file_path: ./abis/PonsV2FeeEscrow.json
+    events:
+      # The escrow is shared by every Pons launch the operator runs. Narrow it
+      # at the source via the `where` filter in src/handlers/index.ts so
+      # HyperSync only returns Suited's claimer + USDG logs.
+      - event: CreditedToken
+        field_selection:
+          transaction_fields:
+            - hash
+      - event: ClaimedToken
+        field_selection:
+          transaction_fields:
+            - hash
+  - name: CreatorFeeClaimer
+    abi_file_path: ./abis/CreatorFeeClaimer.json
+    events:
+      # The claimer is reused across launches; only its USDG flows feed Suited.
+      - event: Claimed
+        field_selection:
+          transaction_fields:
+            - hash
+  - name: CreatorFeeSplitter
+    abi_file_path: ./abis/CreatorFeeSplitter.json
+    events:
+      - event: Split
+        field_selection:
+          transaction_fields:
+            - hash
+      - event: Distributed
+        field_selection:
+          transaction_fields:
+            - hash
+      - event: LegsPaid
+        field_selection:
+          transaction_fields:
+            - hash
+      - event: Deferred
+        field_selection:
+          transaction_fields:
+            - hash
+chains:
+  - id: 4663
+    start_block: 0
+    contracts:
+      - name: Vault
+        address: "0x156473aD685321B310c8F7c88936f49bc79E3C33"
+      - name: PonsV2FeeEscrow
+        address: "0xd3AFEB2a57f70eF218Aa82451c51B2fb0416Ac9e"
+      - name: CreatorFeeClaimer
+        address: "0xeEd5b0Bd71b514Eca311F96cDf5570a5e58419f1"
+      - name: CreatorFeeSplitter
+        address: "0xf893bD8957DB937626224A23d7096890CA4B877b"

@@ -5,3 +5,9 @@ dist/
 
 # Snapshot data is produced by the tracker and stays local.
 data/
+
+# Indexer runtime (bring your own Envio token in .env).
+.env
+*.env
+!*.env.example
+.envio/

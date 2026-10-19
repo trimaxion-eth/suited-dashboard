@@ -1,0 +1,171 @@
+# Suited revenue — entity graph exposed over GraphQL by Hasura.
+#
+# Amounts are raw USDG (6 decimals): divide by 1e6 for dollars. Addresses and
+# hashes are lowercased strings. Timestamps/block numbers are raw BigInt (the
+# GraphQL layer can convert over graphql-curl / Hasura views).
+#
+# Raw row per on-chain event:
+#   Checkpoint, FeeCredit, FeeClaimIn, FeeForward, FeeSplit,
+#   FeeDistribution, FeePayout, FeeDeferred
+# UTC-day aggregates the dashboard reads directly:
+#   DailyRake           (poker rake)
+#   DailyCreatorFee     (pons creator fees)
+# Lifetime singleton:
+#   ProtocolStats       (id = "protocol")
+
+# ── poker rake ───────────────────────────────────────────────────────────────
+
+# Vault.CheckpointApplied(seq, playerCount, rake): one per settled checkpoint.
+type Checkpoint {
+  id: ID! # `${txHash}-${logIndex}`
+  seq: BigInt!
+  playerCount: BigInt!
+  rake: BigInt!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  transactionHash: String!
+}
+
+# UTC-day poker rake. id = "YYYY-MM-DD".
+type DailyRake {
+  id: ID!
+  date: String!
+  checkpoints: BigInt!
+  playerCount: BigInt!
+  rake: BigInt!
+  cumulativeRake: BigInt!
+  firstBlock: BigInt!
+  lastBlock: BigInt!
+}
+
+# ── pons creator fees ────────────────────────────────────────────────────────
+
+# PonsV2FeeEscrow.CreditedToken — gross creator fee generated (claimer, USDG).
+type FeeCredit {
+  id: ID!
+  recipient: String!
+  token: String!
+  depositor: String!
+  amount: BigInt!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  transactionHash: String!
+}
+
+# PonsV2FeeEscrow.ClaimedToken — USDG pulled into the claimer.
+type FeeClaimIn {
+  id: ID!
+  recipient: String!
+  token: String!
+  amount: BigInt!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  transactionHash: String!
+}
+
+# CreatorFeeClaimer.Claimed — forwarded from escrow to the collector wallet.
+type FeeForward {
+  id: ID!
+  token: String!
+  by: String!
+  fromEscrow: BigInt!
+  forwarded: BigInt!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  transactionHash: String!
+}
+
+# CreatorFeeSplitter.Split — USDG pulled by a keeper and distributed.
+type FeeSplit {
+  id: ID!
+  by: String!
+  amount: BigInt!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  transactionHash: String!
+}
+
+# CreatorFeeSplitter.Distributed — this call's computed shares (20/30/20/20/10).
+type FeeDistribution {
+  id: ID!
+  toHouse: BigInt!
+  toJackpot: BigInt!
+  toStakers: BigInt!
+  toTournaments: BigInt!
+  toBuyback: BigInt!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  transactionHash: String!
+}
+
+# CreatorFeeSplitter.LegsPaid — what actually left this call (share + backlog).
+type FeePayout {
+  id: ID!
+  house: BigInt!
+  jackpot: BigInt!
+  tournaments: BigInt!
+  buyback: BigInt!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  transactionHash: String!
+}
+
+# CreatorFeeSplitter.Deferred — held-back balances after a call.
+type FeeDeferred {
+  id: ID!
+  owedToHouse: BigInt!
+  owedToJackpot: BigInt!
+  owedToTournaments: BigInt!
+  owedToBuyback: BigInt!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+}
+
+# UTC-day creator fees. id = "YYYY-MM-DD".
+#   credited/claimedIn  = escrow accrual / pull into claimer
+#   forwarded           = claimer -> collector
+#   split               = collector -> splitter pull
+#   to*                 = Distributed computed shares (the 5 legs)
+#   paidHouse/...       = LegsPaid actual payouts (<= to* when a leg defers)
+type DailyCreatorFee {
+  id: ID!
+  date: String!
+  credited: BigInt!
+  claimedIn: BigInt!
+  forwarded: BigInt!
+  split: BigInt!
+  toHouse: BigInt!
+  toJackpot: BigInt!
+  toStakers: BigInt!
+  toTournaments: BigInt!
+  toBuyback: BigInt!
+  paidHouse: BigInt!
+  paidJackpot: BigInt!
+  paidTournaments: BigInt!
+  paidBuyback: BigInt!
+  cumulativeCredited: BigInt!
+}
+
+# ── lifetime singleton (id = "protocol") ─────────────────────────────────────
+
+type ProtocolStats {
+  id: ID!
+  totalRake: BigInt!
+  totalCheckpoints: BigInt!
+  lastCheckpointSeq: BigInt!
+  totalCredited: BigInt!
+  totalClaimedIn: BigInt!
+  totalForwarded: BigInt!
+  totalSplit: BigInt!
+  totalToHouse: BigInt!
+  totalToJackpot: BigInt!
+  totalToStakers: BigInt!
+  totalToTournaments: BigInt!
+  totalToBuyback: BigInt!
+  totalPaidHouse: BigInt!
+  totalPaidJackpot: BigInt!
+  totalPaidTournaments: BigInt!
+  totalPaidBuyback: BigInt!
+  lastUpdatedBlock: BigInt!
+  lastUpdatedTimestamp: BigInt!
+}

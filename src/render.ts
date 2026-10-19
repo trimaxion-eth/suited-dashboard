@@ -2,6 +2,14 @@ import type { DayFees, DayRake, Snapshot } from "./types";
 import { avg, int, last, money, moneyK, pct, shortDate, usdg6, when } from "./format";
 import { dailyLast, lineChart, sparkline, weekPanel } from "./charts";
 
+/** Where the daily series actually came from (Envio indexer or the JSON files). */
+function sourceNote(s: Snapshot): string {
+  const list = s.sources?.length
+    ? s.sources
+    : ["data/rake-daily.json", "data/creator-fees-daily.json"];
+  return list.map((x) => `<span class="mono">${x}</span>`).join(" + ");
+}
+
 function nested(obj: unknown, path: string[]): unknown {
   let cur: unknown = obj;
   for (const k of path) {
@@ -505,7 +513,7 @@ export function render(s: Snapshot): string {
           <tbody>${tableRows.join("")}</tbody>
         </table>
       </div>
-      <p class="note">on-chain series from <span class="mono">data/rake-daily.json</span> and <span class="mono">data/creator-fees-daily.json</span>. live room stats from suited.club. refresh parent scripts to update the ledger.</p>
+      <p class="note">on-chain series from ${sourceNote(s)}. live room stats from suited.club.</p>
     </section>
     </div>
 
