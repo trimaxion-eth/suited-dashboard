@@ -1,41 +1,49 @@
 # suited-dashboard
 
-Internal watch on **Suited** — product-market fit (players, hands, vault) and
-protocol revenue (poker rake vs Pons creator/LP fees). Felt-green, lowercase,
-same type as [suited.club](https://suited.club/).
+Internal watch on **Suited**, a no-limit hold'em poker room on Robinhood Chain
+(4663) — product-market fit (players, hands, vault) and protocol revenue (poker
+rake vs Pons creator/LP fees). Felt-green, lowercase, same type as
+[suited.club](https://suited.club/).
 
-Not a player-facing product. Reads the parent tracker’s JSON plus the public
-suited.club APIs.
+Not a player-facing product. This app is the **UI only**: it reads JSON
+snapshots produced by the tracker, plus the public suited.club APIs.
+
+## Run
 
 ```bash
-cd suited-dashboard
 npm install
 npm run dev          # http://127.0.0.1:4177
 ```
 
-`/api/snapshot` (Vite middleware) assembles:
+The dev server mounts `/api/snapshot` (Vite middleware), which assembles:
 
 - live `/api/stats`, `/api/staking`, `/api/leaderboard`, `/api/tournaments`
-- latest `data/snapshots/suited-*.json` and `data/history.jsonl`
-- `data/rake-daily.json`, `data/creator-fees-daily.json`, `data/staking-funded.json`
+  from `https://suited.club/api/*` (public)
+- the newest `snapshots/suited-*.json` and `history.jsonl`
+- `rake-daily.json`, `creator-fees-daily.json`, `staking-funded.json`,
+  `social.json`
 
-Refresh the ledger from the repo root before expecting new days:
+Missing files render as empty panels, so the app boots without any data — it
+just has nothing to show.
 
-```bash
-python3 scripts/suited_dashboard_up.py     # Envio bridge + trackers + serve :4177
-# revenue alone, straight from the local Envio indexer (no RPC scan):
-python3 scripts/suited_indexer_daily.py
-# chain-scan fallback when the indexer is down:
-python3 scripts/suited_rake.py
-python3 scripts/suited_creator_fees.py
-python3 scripts/suited_track.py
-```
+## Where the data lives
 
-`data/rake-daily.json` and `data/creator-fees-daily.json` are written by
-`suited_indexer_daily.py` from the `suited-indexer/` Envio GraphQL tables
-(`DailyRake` / `DailyCreatorFee`); `suited_dashboard_up.py` uses it first and
-falls back to the python chain scanners only if Hasura is unreachable.
+Snapshots are gitignored either way. The app looks for them in `./data` first,
+then falls back to `../data`, so the same checkout works in both places:
+
+- **Standalone** (this directory is its own repo): put the files in `./data/`.
+- **Inside the tracker repo**: the tracker writes to the repo-root `data/`,
+  which this app picks up as `../data`.
+
+| File | Contents |
+| --- | --- |
+| `snapshots/suited-*.json` | holders / players snapshot, one file per run |
+| `history.jsonl` | one JSON object per snapshot, oldest first |
+| `rake-daily.json` | daily poker rake (`CheckpointApplied` events), UTC days |
+| `creator-fees-daily.json` | daily Pons creator fees (`CreatorFeeClaimer` / `CreatorFeeSplitter`) |
+| `staking-funded.json` | staking rewards funded over time |
+| `social.json` | X followers + Discord roster/engagement summary |
 
 Rake and creator fees are **separate streams**. The dashboard never presents
-them as one unnamed “revenue” number; “ops” is labeled as rake + the 20% house
-leg of the fee split only.
+them as one unnamed "revenue" number; "ops" is labeled as rake plus the 20%
+house leg of the fee split only.

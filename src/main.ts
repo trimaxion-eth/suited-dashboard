@@ -50,7 +50,7 @@ try {
 } catch (err) {
   app.innerHTML = `<main class="page">
     <header class="top"><div class="brand">suited <span class="brand-sub">protocol</span></div></header>
-    <p class="lede">could not load the snapshot. run <span class="mono">npm run dev</span> from suited-dashboard so /api/snapshot can read ../data and suited.club.</p>
+    <p class="lede">could not load the snapshot. run <span class="mono">npm run dev</span> so /api/snapshot can read the data dir and suited.club.</p>
     <p class="note">${String(err)}</p>
   </main>`;
 }

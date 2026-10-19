@@ -5,7 +5,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
-const dataDir = path.resolve(root, "../data");
+// Snapshots live in ./data when this app is checked out on its own, and in
+// ../data when it sits inside the parent tracker repo. Prefer the local one.
+const localData = path.resolve(root, "data");
+const dataDir = fs.existsSync(localData) ? localData : path.resolve(root, "../data");
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/151.0 Safari/537.36";
 

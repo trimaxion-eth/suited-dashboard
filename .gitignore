@@ -1,0 +1,7 @@
+node_modules/
+dist/
+*.log
+*.tsbuildinfo
+
+# Snapshot data is produced by the tracker and stays local.
+data/
